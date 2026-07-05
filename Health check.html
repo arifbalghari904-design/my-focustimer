@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Health Check Instrument</title>
+<style>
+    :root {
+        --primary: #00b894;
+        --bg: #f0f7f5;
+        --card: #ffffff;
+        --text: #2d3436;
+        --danger: #d63031;
+        --warning: #fdcb6e;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 20px; }
+   .container { max-width: 900px; margin: auto; }
+    h1 { text-align: center; color: var(--primary); margin-bottom: 20px; }
+
+   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+   .card {
+        background: var(--card);
+        padding: 20px;
+        border-radius: 16px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+   .card h2 { font-size: 18px; margin-bottom: 15px; color: var(--primary); }
+
+    input, select, button {
+        width: 100%;
+        padding: 10px;
+        margin: 8px 0;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+    }
+    button {
+        background: var(--primary);
+        color: white;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    button:hover { opacity: 0.9; }
+
+   .result {
+        margin-top: 15px;
+        padding: 12px;
+        border-radius: 8px;
+        font-weight: 600;
+        text-align: center;
+    }
+   .normal { background: #d1fae5; color: #065f46; }
+   .warn { background: #fef3c7; color: #92400e; }
+   .danger { background: #fee2e2; color: #991b1b; }
+
+   .water-btns { display: flex; gap: 10px; }
+   .water-btns button { flex: 1; background: #74b9ff; }
+   .progress-bar { height: 20px; background: #ddd; border-radius: 10px; overflow: hidden; margin-top: 10px; }
+   .progress { height: 100%; background: var(--primary); width: 0%; transition: 0.3s; }
+
+   .disclaimer { font-size: 12px; color: #636e72; text-align: center; margin-top: 30px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🩺 Health Check Instrument</h1>
+    <div class="grid">
+
+        <!-- 1. BMI CALCULATOR -->
+        <div class="card">
+            <h2>1. BMI Calculator</h2>
+            <input type="number" id="height" placeholder="Height in cm" required>
+            <input type="number" id="weight" placeholder="Weight in kg" required>
+            <button onclick="calcBMI()">Check BMI</button>
+            <div id="bmiResult" class="result" style="display:none;"></div>
+        </div>
+
+        <!-- 2. HEART RATE CHECKER -->
+        <div class="card">
+            <h2>2. Heart Rate Monitor</h2>
+            <p style="font-size:12px; color:#636e72;">Click button with each heartbeat for 15 seconds</p>
+            <button id="heartBtn">Tap Heartbeat</button>
+            <div>Time Left: <span id="timeLeft">15</span>s</div>
+            <div id="heartResult" class="result" style="display:none;"></div>
+        </div>
+
+        <!-- 3. WATER INTAKE TRACKER -->
+        <div class="card">
+            <h2>3. Water Intake Tracker</h2>
+            <p>Goal: 8 glasses / 2000ml</p>
+            <div class="water-btns">
+                <button onclick="addWater(250)">+ 250ml</button>
+                <button onclick="addWater(500)">+ 500ml</button>
+            </div>
+            <div class="progress-bar"><div class="progress" id="waterProgress"></div></div>
+            <p id="waterText">0ml / 2000ml</p>
+            <button onclick="resetWater()">Reset</button>
+        </div>
+
+        <!-- 4. BASIC SYMPTOM CHECKER -->
+        <div class="card">
+            <h2>4. Symptom Checker</h2>
+            <select id="symptom">
+                <option value="">Select Symptom</option>
+                <option value="fever">Fever</option>
+                <option value="headache">Headache</option>
+                <option value="cough">Cough</option>
+                <option value="fatigue">Fatigue</option>
+            </select>
+            <button onclick="checkSymptom()">Get Advice</button>
+            <div id="symptomResult" class="result" style="display:none;"></div>
+        </div>
+
+    </div>
+    <p class="disclaimer">⚠️ This tool does not provide medical advice. Consult a healthcare professional for diagnosis and treatment.</p>
+</div>
+
+<script>
+    // ===== 1. BMI CALCULATOR =====
+    function calcBMI() {
+        const h = document.getElementById('height').value / 100; // to meters
+        const w = document.getElementById('weight').value;
+        const bmi = (w / (h*h)).toFixed(1);
+        const res = document.getElementById('bmiResult');
+        res.style.display = 'block';
+        res.innerHTML = `Your BMI: ${bmi}`;
+
+        if(bmi < 18.5) { res.className = 'result warn'; res.innerHTML += '<br>Underweight'; }
+        else if(bmi < 24.9) { res.className = 'result normal'; res.innerHTML += '<br>Normal'; }
+        else if(bmi < 29.9) { res.className = 'result warn'; res.innerHTML += '<br>Overweight'; }
+        else { res.className = 'result danger'; res.innerHTML += '<br>Obese'; }
+    }
+
+    // ===== 2. HEART RATE MONITOR =====
+    let beats = 0;
+    let timer;
+    let time = 15;
+    const heartBtn = document.getElementById('heartBtn');
+    const timeLeft = document.getElementById('timeLeft');
+    const heartResult = document.getElementById('heartResult');
+
+    heartBtn.onclick = () => {
+        if(!timer) {
+            beats = 0;
+            time = 15;
+            timer = setInterval(() => {
+                time--;
+                timeLeft.textContent = time;
+                if(time <= 0) {
+                    clearInterval(timer);
+                    timer = null;
+                    const bpm = beats * 4; // 15s * 4 = 1 min
+                    heartResult.style.display = 'block';
+                    heartResult.innerHTML = `Heart Rate: ${bpm} BPM`;
+                    if(bpm < 60) { heartResult.className = 'result warn'; heartResult.innerHTML += '<br>Low'; }
+                    else if(bpm <= 100) { heartResult.className = 'result normal'; heartResult.innerHTML += '<br>Normal'; }
+                    else { heartResult.className = 'result danger'; heartResult.innerHTML += '<br>High'; }
+                    heartBtn.textContent = 'Tap Heartbeat';
+                }
+            }, 1000);
+            heartBtn.textContent = 'Keep Tapping...';
+        }
+        beats++;
+    }
+
+    // ===== 3. WATER TRACKER =====
+    let water = parseInt(localStorage.getItem('water')) || 0;
+    const goal = 2000;
+    function updateWater() {
+        document.getElementById('waterProgress').style.width = (water/goal*100) + '%';
+        document.getElementById('waterText').textContent = `${water}ml / ${goal}ml`;
+        localStorage.setItem('water', water);
+    }
+    function addWater(ml) { water += ml; if(water > goal) water = goal; updateWater(); }
+    function resetWater() { water = 0; updateWater(); }
+    updateWater();
+
+    // ===== 4. SYMPTOM CHECKER =====
+    function checkSymptom() {
+        const s = document.getElementById('symptom').value;
+        const res = document.getElementById('symptomResult');
+        res.style.display = 'block';
+        const advice = {
+            fever: {text: "Rest, drink fluids. If >100.4°F for 3+ days, see a doctor.", class: "warn"},
+            headache: {text: "Hydrate and rest. Avoid screens. If severe, consult doctor.", class: "warn"},
+            cough: {text: "Warm liquids + honey. If >2 weeks, see a doctor.", class: "warn"},
+            fatigue: {text: "Check sleep + diet. If persistent, get blood test.", class: "warn"}
+        };
+        if(s && advice[s]) {
+            res.className = `result ${advice[s].class}`;
+            res.textContent = advice[s].text;
+        } else {
+            res.className = 'result danger';
+            res.textContent = 'Please select a symptom';
+        }
+    }
+</script>
+</body>
+</html>
